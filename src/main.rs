@@ -1,5 +1,5 @@
 mod pascal_voc;
-mod tfrecord;
+mod tensorflow_protos;
 
 fn main() {
     println!("hey there");

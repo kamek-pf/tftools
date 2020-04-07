@@ -16,7 +16,7 @@ In a typical project, as soon as you're done assembling and labeling your images
 Just dump all your files and their labels in a single directory and `tftools` will generate all those files:
 
 ```
-tftools pascal-voc \
+tftools prepare pascal-voc \
     --input-dirs /path/to /your /datasets \
     --output-dir /another/path
 ```
@@ -30,7 +30,7 @@ label-map.pbtxt   # label map generated from your XML files
 
 The only requirement is that for each input file, there's a corresponding XML file with the same name. \
 For instance, `input1.jpg` should have a `input1.xml` in the same directory. \
-Check `tftools pascal-voc --help` for more options.
+Check `tftools prepare pascal-voc --help` for more options.
 
 
 ## Technical details
