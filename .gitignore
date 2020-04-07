@@ -1,0 +1,6 @@
+/target
+/*.tfrecord
+/*.csv
+/src/tensorflow_protos/*.rs
+/dataset/*.tfrecord
+/dataset/*.csv
