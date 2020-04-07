@@ -1,5 +1,5 @@
-# `tftools`
-TensorFlow helpers, focus on ML, not on glue code. \
+# tftools
+TensorFlow helpers, focus on ML, not on glue code.
 
 ## Use cases and examples
 Heres what's currently available:
