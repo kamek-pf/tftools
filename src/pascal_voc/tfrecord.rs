@@ -11,10 +11,10 @@ pub struct RecordBuilder {
     label_map: LabelMap,
 
     // Max sized allowed for each output file
-    max_size: u64,
+    max_size: usize,
 
     // Current estimate of the output file size
-    current_size: u64,
+    current_size: usize,
 
     // Current chunk
     current_chunk: u64,
@@ -38,7 +38,7 @@ pub struct RecordBuilder {
 
 impl RecordBuilder {
     /// Initialize a new RecordBuilder
-    pub fn new(max_size: u64, label_map: LabelMap) -> RecordBuilder {
+    pub fn new(max_size: usize, label_map: LabelMap) -> RecordBuilder {
         RecordBuilder {
             label_map,
             max_size,
@@ -70,11 +70,15 @@ impl RecordBuilder {
                     return;
                 }
 
+                // Add metadata and recorder state
                 self.height.push(height as i64);
                 self.height.push(width as i64);
                 self.filename.push(example.filename.into_bytes());
+                self.current_size += bytes.len();
                 self.encoded_image_data.push(bytes);
                 self.image_format.push(ext.as_bytes().to_owned());
+
+                // Add coordinates
                 self.xmins.push(
                     example
                         .objects
@@ -103,6 +107,8 @@ impl RecordBuilder {
                         .map(|o| math::normalize(o.bndbox.ymax, 0, height))
                         .collect(),
                 );
+
+                // Add labels
                 self.classes_text.push(
                     example
                         .objects
