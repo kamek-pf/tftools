@@ -70,7 +70,7 @@ impl RecordBuilder {
                     return;
                 }
 
-                // Add metadata and recorder state
+                // Add metadata and update recorder state
                 self.height.push(height as i64);
                 self.height.push(width as i64);
                 self.filename.push(example.filename.into_bytes());
