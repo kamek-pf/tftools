@@ -41,8 +41,8 @@ pub struct Source {
 /// The <size> top level field
 #[derive(Debug, Deserialize, Clone)]
 pub struct Size {
-    pub width: u64,
-    pub height: u64,
+    pub width: u32,
+    pub height: u32,
     pub depth: u8,
 }
 
@@ -59,10 +59,10 @@ pub struct Object {
 /// Coordinates of the bounding box, under the <object> field
 #[derive(Debug, Deserialize, Clone)]
 pub struct BndBox {
-    pub xmin: u64,
-    pub ymin: u64,
-    pub xmax: u64,
-    pub ymax: u64,
+    pub xmin: u32,
+    pub ymin: u32,
+    pub xmax: u32,
+    pub ymax: u32,
 }
 
 /// Error types you might encounter while working with PASCAL VOC files
@@ -79,6 +79,7 @@ pub enum PascalVocError {
 fn deserialize_pascal_voc() {
     let first_path = PathBuf::from("./dataset/1.xml");
     let first = Annotation::from_file(&first_path).unwrap();
+    assert_eq!(first.filename, "1.jpg");
     assert_eq!(first.objects.len(), 2);
     assert_eq!(first.segmented, false);
     assert_eq!(first.size.width, 480);
@@ -94,6 +95,7 @@ fn deserialize_pascal_voc() {
 
     let fifth_path = PathBuf::from("./dataset/5.xml");
     let fifth = Annotation::from_file(&fifth_path).unwrap();
+    assert_eq!(fifth.filename, "5.jpg");
     assert_eq!(fifth.objects.len(), 1);
     assert_eq!(fifth.segmented, false);
     assert_eq!(fifth.size.width, 1000);

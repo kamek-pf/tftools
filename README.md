@@ -2,6 +2,7 @@
 TensorFlow helpers, focus on ML, not on glue code.
 
 ## Use cases and examples
+Current helpers are centered around PASCAL-VOC and the tfrecord format, more things will be added over time. \
 Heres what's currently available:
 - Dataset preparation - object detection
 
