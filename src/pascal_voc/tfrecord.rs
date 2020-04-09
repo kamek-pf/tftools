@@ -1,8 +1,13 @@
+use std::collections::HashMap;
 use std::fs;
+
+use protobuf::RepeatedField;
 
 use super::label_map::LabelMap;
 use super::parser::Annotation;
 use crate::math;
+use crate::tensorflow_protos::example::Example;
+use crate::tensorflow_protos::feature::{BytesList, Feature, Features, FloatList, Int64List};
 
 #[derive(Debug, Default)]
 pub struct RecordBuilder {
@@ -17,23 +22,23 @@ pub struct RecordBuilder {
     // Examples that failed to load or are otherwise invalid
     ignored: Vec<String>,
     // Features used by the neural net
-    features: BuilderFeatures,
+    features: Vec<BuilderFeatures>,
 }
 
 #[derive(Debug, Default)]
 struct BuilderFeatures {
-    height: Vec<i64>,                 // image heights
-    width: Vec<i64>,                  // image width
-    filename: Vec<Vec<u8>>,           // File names byte strings
-    encoded_image_data: Vec<Vec<u8>>, // Image as bytes
-    image_format: Vec<Vec<u8>>,       // Image extension as byte strings, 'b'jpg  or 'b'png,
+    height: i64,
+    width: i64,
+    filename: String,
+    image_bytes: Vec<u8>,
+    image_format: String,
 
-    xmins: Vec<Vec<f64>>, // List of normalized left x coordinates in bounding box (1 per box)
-    xmaxs: Vec<Vec<f64>>, // List of normalized right x coordinates in bounding box # (1 per box)
-    ymins: Vec<Vec<f64>>, // List of normalized top y coordinates in bounding box (1 per box)
-    ymaxs: Vec<Vec<f64>>, // List of normalized bottom y coordinates in bounding box # (1 per box)
-    classes: Vec<Vec<i64>>, // List of integer class id of bounding box (1 per box)
-    classes_text: Vec<Vec<Vec<u8>>>, // List of string class name of bounding box (1 per box)
+    xmins: Vec<f64>, // List of normalized left x coordinates in bounding box (1 per box)
+    xmaxs: Vec<f64>, // List of normalized right x coordinates in bounding box # (1 per box)
+    ymins: Vec<f64>, // List of normalized top y coordinates in bounding box (1 per box)
+    ymaxs: Vec<f64>, // List of normalized bottom y coordinates in bounding box # (1 per box)
+    classes: Vec<i64>, // List of integer class id of bounding box (1 per box)
+    classes_text: Vec<String>, // List of string class name of bounding box (1 per box)
 }
 
 impl RecordBuilder {
@@ -78,21 +83,17 @@ impl RecordBuilder {
                 features.ymaxs.push(ymaxs);
 
                 // Add labels
-                features.classes_text.push(
-                    example
-                        .objects
-                        .iter()
-                        .map(|o| o.name.clone().into_bytes())
-                        .collect(),
-                );
+                features
+                    .classes_text
+                    .push(example.objects.iter().map(|o| o.name.clone()).collect());
 
                 // Add metadata and update recorder state
                 self.current_size += bytes.len();
                 features.height.push(height as i64);
                 features.height.push(width as i64);
-                features.filename.push(example.filename.into_bytes());
-                features.encoded_image_data.push(bytes);
-                features.image_format.push(ext.as_bytes().to_owned());
+                features.filename.push(example.filename.clone());
+                features.image_bytes.push(bytes);
+                features.image_format.push(ext.to_owned());
             }
             _ => {
                 self.ignored.push(example.path.to_string_lossy().into());
@@ -128,6 +129,98 @@ fn get_normalized_coordinates(input: &Annotation) -> (Vec<f64>, Vec<f64>, Vec<f6
     });
 
     (xmins, xmaxs, ymins, ymaxs)
+}
+
+// Map our features to TensorFlow's Example, which can be serialized into a tfrecord file
+impl From<BuilderFeatures> for Example {
+    fn from(builder: BuilderFeatures) -> Example {
+        let mut example = Example::new();
+        let mut features = Features::new();
+        let mut features_map = HashMap::new();
+
+        insert_feature(&mut features_map, "image/height", builder.height);
+        insert_feature(&mut features_map, "image/width", builder.width);
+
+        // According to the docs, "image/filename" and "image/source_id"
+        // are both based on file name, see python sample code:
+        // https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/using_your_own_dataset.md
+        let source_id = builder.filename.clone();
+        insert_feature(&mut features_map, "image/filename", builder.filename);
+        insert_feature(&mut features_map, "image/source_id", source_id);
+
+        insert_feature(&mut features_map, "image/encoded", builder.image_bytes);
+        insert_feature(&mut features_map, "image/format", builder.image_format);
+        insert_feature(&mut features_map, "image/object/bbox/xmin", builder.xmins);
+
+        features.set_feature(features_map);
+        example.set_features(features);
+
+        example
+    }
+}
+
+// Helper function, converts a list of values into a TensorFlow Feature and insert it into a map
+fn insert_feature<V: Into<Feature>>(map: &mut HashMap<String, Feature>, attr: &str, values: V) {
+    let attr = String::from(attr);
+    map.insert(attr, values.into());
+}
+
+impl From<Vec<i64>> for Feature {
+    fn from(input: Vec<i64>) -> Feature {
+        let mut values = Feature::new();
+        let mut list = Int64List::new();
+
+        list.set_value(input);
+        values.set_int64_list(list);
+
+        values
+    }
+}
+
+impl From<Vec<f32>> for Feature {
+    fn from(input: Vec<f32>) -> Feature {
+        let mut values = Feature::new();
+        let mut list = FloatList::new();
+
+        list.set_value(input);
+        values.set_float_list(list);
+
+        values
+    }
+}
+
+impl From<Vec<String>> for Feature {
+    fn from(input: Vec<String>) -> Feature {
+        let mut values = Feature::new();
+        let mut list = BytesList::new();
+        let mut repeated = RepeatedField::new();
+
+        input.into_iter().for_each(|string| {
+            repeated.push(string.into_bytes());
+        });
+
+        list.set_value(repeated);
+        values.set_bytes_list(list);
+
+        values
+    }
+}
+
+impl From<Vec<Vec<u8>>> for Feature {
+    fn from(input: Vec<Vec<u8>>) -> Feature {
+        let mut values = Feature::new();
+        let mut list = BytesList::new();
+        let mut repeated = RepeatedField::new();
+
+        input.into_iter().for_each(|bytes| {
+            repeated.push(bytes);
+        });
+
+        list.set_value(repeated);
+        values.set_bytes_list(list);
+
+        values
+    }
 }
 
 // Structure: example <- features <- feature
