@@ -1,4 +1,3 @@
-use std::ffi::OsStr;
 use std::fs;
 
 use super::label_map::LabelMap;
@@ -51,8 +50,8 @@ impl RecordBuilder {
             .path
             .extension()
             .and_then(|s| s.to_str())
-            .and_then(|ext| match ext {
-                "png" | "PNG" | "jpg" | "jpeg" | "JPEG" => Some(ext),
+            .and_then(|ext| match ext.to_lowercase().as_ref() {
+                "png" | "jpg" | "jpeg" => Some(ext),
                 _ => None,
             });
 
@@ -62,51 +61,19 @@ impl RecordBuilder {
                 let height = example.size.height;
 
                 // Map labels first, keep track of failures and bail
-                let (labels_ok, mapped_labels) = map_labels(&example, &self.label_map);
-                if labels_ok {
+                if let Some(mapped_labels) = map_labels(&example, &self.label_map) {
                     self.classes.push(mapped_labels);
                 } else {
                     self.ignored.push(example.path.to_string_lossy().into());
                     return;
                 }
 
-                // Add metadata and update recorder state
-                self.height.push(height as i64);
-                self.height.push(width as i64);
-                self.filename.push(example.filename.into_bytes());
-                self.current_size += bytes.len();
-                self.encoded_image_data.push(bytes);
-                self.image_format.push(ext.as_bytes().to_owned());
-
                 // Add coordinates
-                self.xmins.push(
-                    example
-                        .objects
-                        .iter()
-                        .map(|o| math::normalize(o.bndbox.xmin, 0, width))
-                        .collect(),
-                );
-                self.xmaxs.push(
-                    example
-                        .objects
-                        .iter()
-                        .map(|o| math::normalize(o.bndbox.xmax, 0, width))
-                        .collect(),
-                );
-                self.ymins.push(
-                    example
-                        .objects
-                        .iter()
-                        .map(|o| math::normalize(o.bndbox.ymin, 0, height))
-                        .collect(),
-                );
-                self.ymaxs.push(
-                    example
-                        .objects
-                        .iter()
-                        .map(|o| math::normalize(o.bndbox.ymax, 0, height))
-                        .collect(),
-                );
+                let (xmins, xmaxs, ymins, ymaxs) = get_normalized_coordinates(&example);
+                self.xmins.push(xmins);
+                self.xmaxs.push(xmaxs);
+                self.ymins.push(ymins);
+                self.ymaxs.push(ymaxs);
 
                 // Add labels
                 self.classes_text.push(
@@ -116,6 +83,15 @@ impl RecordBuilder {
                         .map(|o| o.name.clone().into_bytes())
                         .collect(),
                 );
+
+                // Add metadata and update recorder state
+                self.height.push(height as i64);
+                self.height.push(width as i64);
+                self.filename.push(example.filename.into_bytes());
+                self.current_size += bytes.len();
+                self.encoded_image_data.push(bytes);
+                self.image_format.push(ext.as_bytes().to_owned());
+
             }
             _ => {
                 self.ignored.push(example.path.to_string_lossy().into());
@@ -124,9 +100,33 @@ impl RecordBuilder {
     }
 }
 
-// Map labels to integers, bool describes whether or not all labels were mapped successfully
-fn map_labels(input: &Annotation, map: &LabelMap) -> (bool, Vec<i64>) {
-    unimplemented!();
+// Map labels to integers. Option is Some if all operations succeed
+fn map_labels(input: &Annotation, label_map: &LabelMap) -> Option<Vec<i64>> {
+    input
+        .objects
+        .iter()
+        .map(|object| label_map.get(&object.name))
+        .collect()
+}
+
+// Outputs vectors of normalized coordinates, tuple struct is (xmins, xmaxs, ymins, ymaxs)
+fn get_normalized_coordinates(input: &Annotation) -> (Vec<f64>, Vec<f64>, Vec<f64>, Vec<f64>) {
+    let labels_count = input.objects.len();
+    let width = input.size.width;
+    let height = input.size.height;
+    let mut xmins = Vec::with_capacity(labels_count);
+    let mut xmaxs = Vec::with_capacity(labels_count);
+    let mut ymins = Vec::with_capacity(labels_count);
+    let mut ymaxs = Vec::with_capacity(labels_count);
+
+    input.objects.iter().for_each(|object| {
+        xmins.push(math::normalize(object.bndbox.xmin, 0, width));
+        xmaxs.push(math::normalize(object.bndbox.xmax, 0, width));
+        ymins.push(math::normalize(object.bndbox.ymin, 0, height));
+        ymaxs.push(math::normalize(object.bndbox.ymax, 0, height));
+    });
+
+    (xmins, xmaxs, ymins, ymaxs)
 }
 
 // Structure: example <- features <- feature
