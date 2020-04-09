@@ -8,19 +8,20 @@ use crate::math;
 pub struct RecordBuilder {
     // Map labels to integers
     label_map: LabelMap,
-
     // Max sized allowed for each output file
     max_size: usize,
-
     // Current estimate of the output file size
     current_size: usize,
-
     // Current chunk
     current_chunk: u64,
-
     // Examples that failed to load or are otherwise invalid
     ignored: Vec<String>,
+    // Features used by the neural net
+    features: BuilderFeatures,
+}
 
+#[derive(Debug, Default)]
+struct BuilderFeatures {
     height: Vec<i64>,                 // image heights
     width: Vec<i64>,                  // image width
     filename: Vec<Vec<u8>>,           // File names byte strings
@@ -59,10 +60,11 @@ impl RecordBuilder {
             (Some(ext), Ok(bytes)) => {
                 let width = example.size.width;
                 let height = example.size.height;
+                let features = &mut self.features;
 
                 // Map labels first, keep track of failures and bail
                 if let Some(mapped_labels) = map_labels(&example, &self.label_map) {
-                    self.classes.push(mapped_labels);
+                    features.classes.push(mapped_labels);
                 } else {
                     self.ignored.push(example.path.to_string_lossy().into());
                     return;
@@ -70,13 +72,13 @@ impl RecordBuilder {
 
                 // Add coordinates
                 let (xmins, xmaxs, ymins, ymaxs) = get_normalized_coordinates(&example);
-                self.xmins.push(xmins);
-                self.xmaxs.push(xmaxs);
-                self.ymins.push(ymins);
-                self.ymaxs.push(ymaxs);
+                features.xmins.push(xmins);
+                features.xmaxs.push(xmaxs);
+                features.ymins.push(ymins);
+                features.ymaxs.push(ymaxs);
 
                 // Add labels
-                self.classes_text.push(
+                features.classes_text.push(
                     example
                         .objects
                         .iter()
@@ -85,13 +87,12 @@ impl RecordBuilder {
                 );
 
                 // Add metadata and update recorder state
-                self.height.push(height as i64);
-                self.height.push(width as i64);
-                self.filename.push(example.filename.into_bytes());
                 self.current_size += bytes.len();
-                self.encoded_image_data.push(bytes);
-                self.image_format.push(ext.as_bytes().to_owned());
-
+                features.height.push(height as i64);
+                features.height.push(width as i64);
+                features.filename.push(example.filename.into_bytes());
+                features.encoded_image_data.push(bytes);
+                features.image_format.push(ext.as_bytes().to_owned());
             }
             _ => {
                 self.ignored.push(example.path.to_string_lossy().into());
