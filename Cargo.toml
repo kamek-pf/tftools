@@ -5,10 +5,11 @@ authors = ["Bertrand \"Kamek\" Bousquet <b.kamek@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-protobuf = "2.12.0"
+protobuf = "2.8.0"
 quick-xml = { version = "0.18.1", features = ["serialize"] }
 serde = { version = "1.0.106", features = ["derive"] }
 thiserror = "1.0.14"
+tensorflow = "0.15.0"
 
 [build-dependencies]
-protoc-rust = "2.12.0"
+protoc-rust = "2.8.0"
