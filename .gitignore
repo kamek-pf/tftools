@@ -2,5 +2,6 @@
 /*.tfrecord
 /*.csv
 /src/tensorflow_protos/*.rs
+!/src/tensorflow_protos/mod.rs
 /dataset/*.tfrecord
 /dataset/*.csv
