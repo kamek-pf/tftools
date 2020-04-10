@@ -121,7 +121,7 @@ impl RecordBuilder {
             .for_each(|example| {
                 let protobuf = Example::from(example);
 
-                // @TODO: better error reporting, look into Iterator's partition method
+                // @TODO: better error reporting, Iterator's partition method ? self.ignored ?
                 protobuf
                     .write_to_bytes()
                     .ok()
