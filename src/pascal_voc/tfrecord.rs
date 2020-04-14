@@ -27,8 +27,6 @@ pub struct RecordBuilder {
     // Current chunk
     // @TODO: currently unused, update when record splitting is implemented
     current_chunk: u64,
-    // Examples that failed to load or are otherwise invalid
-    ignored: Vec<String>,
     // Examples that should be part of the output tfrecord file
     examples: Vec<ExampleImage>,
 }
@@ -70,39 +68,33 @@ impl RecordBuilder {
                 _ => None,
             });
 
-        match (ext, fs::read(&example.path)) {
-            (Some(ext), Ok(bytes)) => {
-                // First, map labels to their id and bail on error
-                let classes = if let Some(classes) = map_labels(&example, &self.label_map) {
-                    classes
-                } else {
-                    self.ignored.push(example.path.to_string_lossy().into());
-                    return;
-                };
+        if let (Some(ext), Ok(bytes)) = (ext, fs::read(&example.path)) {
+            // First, map labels to their id and bail on error
+            let classes = if let Some(classes) = map_labels(&example, &self.label_map) {
+                classes
+            } else {
+                return;
+            };
 
-                self.current_size += bytes.len();
-                let (xmins, xmaxs, ymins, ymaxs) = get_normalized_coordinates(&example);
+            self.current_size += bytes.len();
+            let (xmins, xmaxs, ymins, ymaxs) = get_normalized_coordinates(&example);
 
-                let input = ExampleImage {
-                    height: example.size.height as i64,
-                    width: example.size.width as i64,
-                    filename: example.filename.clone(),
-                    image_bytes: bytes,
-                    image_format: ext.to_owned(),
-                    xmins,
-                    xmaxs,
-                    ymins,
-                    ymaxs,
-                    classes,
-                    classes_text: example.objects.iter().map(|o| o.name.clone()).collect(),
-                };
+            let input = ExampleImage {
+                height: example.size.height as i64,
+                width: example.size.width as i64,
+                filename: example.filename.clone(),
+                image_bytes: bytes,
+                image_format: ext.to_owned(),
+                xmins,
+                xmaxs,
+                ymins,
+                ymaxs,
+                classes,
+                classes_text: example.objects.iter().map(|o| o.name.clone()).collect(),
+            };
 
-                self.examples.push(input);
-            }
-            _ => {
-                self.ignored.push(example.path.to_string_lossy().into());
-            }
-        };
+            self.examples.push(input);
+        }
     }
 
     /// Write examples added to the builder to a tfrecord file
@@ -121,7 +113,6 @@ impl RecordBuilder {
             .for_each(|example| {
                 let protobuf = Example::from(example);
 
-                // @TODO: better error reporting, Iterator's partition method ? self.ignored ?
                 protobuf
                     .write_to_bytes()
                     .ok()

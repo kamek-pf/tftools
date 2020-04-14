@@ -5,3 +5,4 @@
 !/src/tensorflow_protos/mod.rs
 /dataset/*.tfrecord
 /dataset/*.csv
+/output
