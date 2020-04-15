@@ -68,7 +68,7 @@ impl RecordBuilder {
                 _ => None,
             });
 
-        if let (Some(ext), Ok(bytes)) = (ext, fs::read(&example.path)) {
+        if let (Some(ext), Ok(bytes)) = (ext, fs::read(&example.system_path)) {
             // First, map labels to their id and bail on error
             let classes = if let Some(classes) = map_labels(&example, &self.label_map) {
                 classes

@@ -10,12 +10,26 @@ use thiserror::Error;
 /// A PASCAL-VOC XML annotation, this is the main object type
 #[derive(Debug, Deserialize, Clone)]
 pub struct Annotation {
+    /// Original name of the folder containing the target image.
+    /// Might change if files are moved.
     pub folder: String,
+    /// Original name the target image. Might change if files are moved.
     pub filename: String,
+    /// Original name of the folder containing the target image.
+    /// Might change if files are moved.
     pub path: PathBuf,
+    /// Generated field. PASCAL-VOC files contain the absolute path to the original file.
+    /// That path will be valid on the machine of the person who labeled the original image.
+    /// Since this tool assumes the original image and its PASCAL-VOC file are collocated,
+    /// we can build the correct path.
+    #[serde(skip)]
+    pub system_path: PathBuf,
+    /// Source database (might be missing/irrelevant).
     pub source: Source,
+    /// Dimensions of the image.
     pub size: Size,
     pub segmented: bool,
+    /// Objects labled in the image.
     #[serde(rename = "object", default)]
     pub objects: Vec<Object>,
 }
@@ -24,7 +38,10 @@ impl Annotation {
     /// Deserialize the content of a file into an Annotation
     pub fn from_file(path: &Path) -> Result<Annotation, PascalVocError> {
         let content: String = fs::read_to_string(path)?;
-        let example: Annotation = quick_xml::de::from_str(&content)?;
+        let mut example: Annotation = quick_xml::de::from_str(&content)?;
+        let mut system_path = path.to_owned();
+        system_path.set_file_name(&example.filename);
+        example.system_path = system_path;
 
         Ok(example)
     }
