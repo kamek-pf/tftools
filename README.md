@@ -38,6 +38,10 @@ Check `tftools prepare pascal-voc --help` for more options.
 The following section contains technical details for maintainers/contributors. \
 If you're a user, you don't need to read this.
 
+### Development
+The `tensorflow` and `models` folders are git submodules for TensorFlow core and their model garden, respectively. \
+Run `git submodules update --init` to get started. The `models` repo is huge.
+
 ### Object detection API
 The object detection API currently relies on the following attributes:
 ```bash

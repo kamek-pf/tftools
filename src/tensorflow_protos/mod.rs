@@ -2,6 +2,7 @@
 //! For convenience, some From implementations were added to the Feature type.
 pub mod example;
 pub mod feature;
+pub mod string_int_label_map;
 
 use protobuf::RepeatedField;
 
