@@ -11,43 +11,28 @@ where
     (value - min).into() / (max - min).into()
 }
 
-/// Split a collection in two. The ratio determines the amount of data
-/// that should be held by the second member of the tuple.
-/// The method used splits the data deteministically and the resulting sizes should
-/// match the specified ratio closely, but not perfectly.
-pub fn split<T>(input: Vec<T>, right_ratio: u8) -> (Vec<T>, Vec<T>)
+/// Given some data and a ratio, for instance the bytes of an image and a ratio of 20%,
+/// this function computes whether or not or not the data should be retained.
+/// You can use it as a predicate to split a dataset between a training set and a testing set.
+/// This method is deteministic, applying it to a collection should result in datasets matching the
+/// specified ratio closely, but not perfectly
+pub fn retain<T>(input: T, ratio: u8) -> bool
 where
     T: AsRef<[u8]>,
 {
-    let right_ratio = if right_ratio > 100 {
+    let ratio = if ratio > 100 {
         100f64
     } else {
-        right_ratio as f64 / 100f64
+        ratio as f64 / 100f64
     };
 
-    // Right capacity is right_ratio% of the collection size
-    let right_capacity = ((input.len() as f64) * right_ratio).round() as usize;
-    let mut right = Vec::with_capacity(right_capacity);
+    // Compute a hash of the input, if the hash is below ratio% of the maximum
+    // hash value, it is retained.
+    let threshold = (u32::max_value() as f64 * ratio).round() as u32;
+    let bytes = input.as_ref();
+    let crc = crc32::checksum_ieee(&bytes);
 
-    // Left capacity is the rest of it
-    let left_capacity = input.len() - right_capacity;
-    let mut left = Vec::with_capacity(left_capacity);
-
-    // Compute a hash of each element, if the hash is below right_ratio% of maximum
-    // hash value, it goes in the right collection. Otherwise, it goes to the left.
-    let threshold = (u32::max_value() as f64 * right_ratio).round() as u32;
-    input.into_iter().for_each(|element| {
-        let bytes = element.as_ref();
-        let crc = crc32::checksum_ieee(&bytes);
-
-        if crc >= threshold {
-            left.push(element)
-        } else {
-            right.push(element)
-        }
-    });
-
-    (left, right)
+    crc < threshold
 }
 
 #[test]
@@ -72,16 +57,23 @@ fn test_split() {
         vec![10],
     ];
 
-    let (left, right) = split(input.clone(), 50);
-    assert_eq!(left.len(), 5);
-    assert_eq!(right.len(), 5);
+    let retained = input
+        .clone()
+        .iter()
+        .filter(|element| retain(element, 50))
+        .count();
+    assert_eq!(retained, 5);
 
-    let (left, right) = split(input, 20);
-    // Lengths here SHOULD be 8 and 2, respectively
+    let retained = input
+        .clone()
+        .iter()
+        .filter(|element| retain(element, 20))
+        .count();
+
+    // It SHOULD retain 2 elements.
     // The CRC method provides a deterministic way to split the data
-    // and the ratio whould be close enough to what we ask, but it's not perfect
-    assert_eq!(left.len(), 9);
-    assert_eq!(right.len(), 1);
+    // and the ratio should be close enough to what we ask, but it's not perfect
+    assert_eq!(retained, 1);
 }
 
 #[test]
@@ -96,9 +88,12 @@ fn test_split_dataset() {
     ];
 
     // Same comment, 20% is about 1.2 here it appears to be rounded to 2
-    let (left, right) = split(input, 20);
-    assert_eq!(right.len(), 2);
-    assert_eq!(left.len(), 4);
+    let retained = input
+        .clone()
+        .iter()
+        .filter(|element| retain(element, 20))
+        .count();
+    assert_eq!(retained, 2);
 
     let input = vec![
         include_str!("../dataset/1.xml"),
@@ -110,7 +105,10 @@ fn test_split_dataset() {
     ];
 
     // ... and here to one
-    let (left, right) = split(input, 20);
-    assert_eq!(right.len(), 1);
-    assert_eq!(left.len(), 5);
+    let retained = input
+        .clone()
+        .iter()
+        .filter(|element| retain(element, 20))
+        .count();
+    assert_eq!(retained, 1);
 }
