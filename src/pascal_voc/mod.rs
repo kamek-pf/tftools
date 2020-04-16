@@ -7,19 +7,24 @@ use std::path::{Path, PathBuf};
 use thiserror::Error;
 use walkdir::WalkDir;
 
-use label_map::LabelMap;
+use label_map::{LabelMap, LabelMapError};
 use parser::{Annotation, PascalVocError};
 use tfrecord::{RecordBuilder, TfRecordError};
 
+pub struct PrepareOpts {
+    pub input: PathBuf,
+    pub output: PathBuf,
+}
+
 // Takes a directory as a input, will recursively search for PASCAL-VOC files
 // and generate tfrecord files in the output directory
-pub fn prepare<O: Into<PathBuf>>(input: &Path, output: O) -> Result<Report, PrepareError> {
+pub fn prepare(opts: PrepareOpts) -> Result<Report, PrepareError> {
     // Report information while processing the dataset
     let mut report = Report::default();
 
     // Collect all annotations
     let mut input_examples = Vec::new();
-    get_xml_paths(input)
+    get_xml_paths(&opts.input)
         .iter()
         .for_each(|path| match Annotation::from_file(path) {
             Ok(annotation) => input_examples.push(annotation),
@@ -35,14 +40,21 @@ pub fn prepare<O: Into<PathBuf>>(input: &Path, output: O) -> Result<Report, Prep
             label_map.add(&o.name);
         });
 
+    // Write label map to file
+    let mut label_output: PathBuf = opts.output.clone().into();
+    label_output.push("label_map.txt");
+    label_map.clone().write_to_file(&label_output)?;
+
     // Generate tfrecord
-    let mut record = RecordBuilder::new(0, label_map);
-    let mut output: PathBuf = output.into();
-    output.push("out.tfrecord");
+    let mut record = RecordBuilder::new(0, label_map.clone());
     input_examples
         .into_iter()
         .for_each(|e| record.add_example(e));
-    record.write_tfrecord(&output)?;
+
+    // Write tfrecord
+    let mut record_output: PathBuf = opts.output.into();
+    record_output.push("out.tfrecord");
+    record.write_tfrecord(&record_output)?;
 
     Ok(report)
 }
@@ -71,6 +83,9 @@ pub struct Report {
 
 #[derive(Debug, Error)]
 pub enum PrepareError {
+    #[error("Something went wrong while generating label map file")]
+    LabelMap(#[from] LabelMapError),
+
     #[error("Something went wrong while generating tfrecord file")]
-    Io(#[from] TfRecordError),
+    TfRecord(#[from] TfRecordError),
 }

@@ -7,5 +7,7 @@ use std::path::PathBuf;
 fn main() {
     let input = PathBuf::from("dataset");
     let output = PathBuf::from("output");
-    pascal_voc::prepare(&input, &output);
+    let opts = pascal_voc::PrepareOpts { input, output };
+
+    pascal_voc::prepare(opts);
 }
