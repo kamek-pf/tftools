@@ -655,6 +655,7 @@ dependencies = [
 name = "tftools"
 version = "0.1.0"
 dependencies = [
+ "crc",
  "protobuf",
  "protoc-rust",
  "quick-xml",
