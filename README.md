@@ -17,7 +17,7 @@ In a typical project, as soon as you're done assembling and labeling your images
 Just dump all your files and their labels in a single directory and `tftools` will generate all those files:
 
 ```
-tftools prepare pascal-voc \
+tftools pascal-voc prepare \
     --input-dirs /path/to /your /datasets \
     --output-dir /another/path
 ```
@@ -26,7 +26,7 @@ You'll end up with the following files in your output directory:
 ```
 train.tfrecord    # contains 80% of your dataset by default
 test.tfrecord     # contains 20% of your dataset by default
-label-map.pbtxt   # label map generated from your XML files
+label_map.txt     # label map generated from your XML files
 ```
 
 The only requirement is that for each input file, there's a corresponding XML file with the same name. \

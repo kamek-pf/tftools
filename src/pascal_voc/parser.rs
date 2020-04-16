@@ -1,4 +1,4 @@
-//! This module implements deserializers for the PASCAL VOC data format
+//! This module implements deserializers for the PASCAL VOC data format.
 use std::fs;
 use std::io::Error as IoError;
 use std::path::{Path, PathBuf};

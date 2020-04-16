@@ -1,3 +1,4 @@
+//! This module implements helpers for generating tfrecord files for object detection.
 use std::collections::HashMap;
 use std::fs::{self, OpenOptions};
 use std::io::{BufWriter, Error as IoError};

@@ -1,3 +1,4 @@
+//! This module implements helpers for generating label maps.
 use std::collections::HashMap;
 use std::fs::OpenOptions;
 use std::io::{BufWriter, Error as IoError, Write};

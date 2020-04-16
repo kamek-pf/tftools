@@ -1,3 +1,4 @@
+//! Math helpers.
 use std::ops::Sub;
 
 /// Feature scaling helper - normalization (also called min-max scaling)
