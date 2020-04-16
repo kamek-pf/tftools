@@ -1,3 +1,8 @@
-pub mod label_map;
-pub mod parser;
-pub mod tfrecord;
+//! PASCAL-VOC features and helpers.
+mod label_map;
+mod parser;
+mod tfrecord;
+
+mod features;
+
+pub use features::prepare::{prepare, PrepareOpts, Report as PrepareReport};
