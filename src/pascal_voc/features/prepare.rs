@@ -18,6 +18,7 @@ use crate::pascal_voc::tfrecord::{RecordBuilder, TfRecordError};
 
 /// Configuration options for preparing TensorFlow input files
 /// from PASCAL-VOC annotated images
+#[derive(Debug)]
 pub struct PrepareOpts {
     /// Input directory, where your data set is. Will be searched recursively.
     pub input: PathBuf,

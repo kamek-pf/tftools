@@ -3,16 +3,24 @@ mod math;
 mod pascal_voc;
 mod tensorflow_protos;
 
-use std::path::PathBuf;
+use std::convert::TryFrom;
+use std::error::Error;
 
-fn main() {
-    let input = PathBuf::from("dataset");
-    let output = PathBuf::from("output");
-    let opts = pascal_voc::PrepareOpts {
-        input,
-        output,
-        test_set_ratio: 20,
-    };
+use structopt::StructOpt;
 
-    pascal_voc::prepare(opts);
+use cli::{Command, PascalVoc};
+use pascal_voc::PrepareOpts;
+
+fn main() -> Result<(), Box<dyn Error>> {
+    match Command::from_args() {
+        // PASCAL-VOC commands
+        Command::PascalVoc(pv_cmd) => match pv_cmd {
+            // Prepare subcommand
+            PascalVoc::Prepare(opts) => {
+                let opts = PrepareOpts::try_from(opts)?;
+                println!("{:?}", opts);
+                Ok(())
+            }
+        },
+    }
 }
