@@ -13,6 +13,7 @@ tensorflow = "0.15.0"
 walkdir = "2.3.1"
 structopt = "0.3.13"
 crc = "1.8.1"
+log = "0.4.8"
 
 [build-dependencies]
 protoc-rust = "2.8.0"

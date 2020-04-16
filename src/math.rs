@@ -15,7 +15,14 @@ where
 /// this function computes whether or not or not the data should be retained.
 /// You can use it as a predicate to split a dataset between a training set and a testing set.
 /// This method is deteministic, applying it to a collection should result in datasets matching the
-/// specified ratio closely, but not perfectly
+/// specified ratio closely, but not perfectly.
+///
+/// ## Example
+/// ```rust
+/// let input = "anything that can be converted to a slice of bytes";
+/// let ratio = 20; // For 20%
+/// assert!(retain(input, ratio));
+/// ```
 pub fn retain<T>(input: T, ratio: u8) -> bool
 where
     T: AsRef<[u8]>,
