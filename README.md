@@ -33,6 +33,20 @@ The only requirement is that for each input file, there's a corresponding XML fi
 For instance, `input1.jpg` should have a `input1.xml` in the same directory. \
 Check `tftools pascal-voc prepare --help` for more options.
 
+## Installation
+For Arch users, you can install `tftools-bin` from the AUR:
+```
+yay -S tftools-bin
+```
+
+For Linux users, you can try the binary from the release page.
+
+## Build
+You'll need a working Rust toolchain (check out `rustup` to get started), `protoc` and `tensorflow`, then:
+```
+cargo build --release
+```
+And you'll find the binary under `target/release/tftools`.
 
 ## Technical details
 The following section contains technical details for maintainers/contributors. \
